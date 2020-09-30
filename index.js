@@ -1,6 +1,14 @@
-const app = require('express');
-const server = require('http').createServer(app);
-const io = require('socket.io')(server,{});
+const express = require('express');
+const app = express();
+const serv = require('http').Server(app);
+const io = require('socket.io')(serv,{});
+
+//single route on index
+app.get('/', function(req, res) {
+    res.sendFile(__dirname + '/public/index.html');
+});
+
+app.use('public',express.static(__dirname + '/public'));
 
 var SOCKET_LIST = [];
 var stats = [];
@@ -8,6 +16,7 @@ var stats = [];
 io.on('connection',socket => {
 
     SOCKET_LIST.push(socket);
+    console.log('New access to site. Currently: ' + SOCKET_LIST.length + " active")
     socket.emit('newStats',stats);
 
     socket.on('sendData',({loc})=>{   
@@ -38,11 +47,11 @@ setInterval(()=>{
     }
 });
 
-const hostname = '0.0.0.0';
+const ip = '0.0.0.0' || '127.0.0.1';
 const port = process.env.PORT || 3000;
 
-server.listen(port,hostname, function(){
-    console.log("Server Started");
+serv.listen(port, ip, function(){
+    console.log("Server Started on ip: " + ip + " and port " + port);
 });
 
 
