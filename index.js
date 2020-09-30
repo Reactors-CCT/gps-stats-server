@@ -12,20 +12,52 @@ app.use('public',express.static(__dirname + '/public'));
 
 var SOCKET_LIST = {};
 var stats = [];
+var userLocations = [];
 
 io.on('connection',socket => {
 
-   // socket.emit('newUser')
     SOCKET_LIST[socket.id] = socket;
     console.log('New socket: ' + socket.id  + '. Currently: ' + Object.keys(SOCKET_LIST).length + ' active');
+    socket.emit('newUser',socket.id);
     socket.emit('newStats',stats);
 
-    socket.on('disconnect', function(){    
-        delete SOCKET_LIST[socket.id];    
-        console.log('Bye socket: ' + socket.id  + '. Currently: ' + Object.keys(SOCKET_LIST).length + ' active');                    
-    });
+    socket.on('disconnect', function(){  
+        
+        let socketLocation = "";
 
-    socket.on('sendData',({loc})=>{   
+        for(var i=0; i< userLocations.length; i++){                
+            if(userLocations[i].userSocket == socket.id){                     
+                socketLocation = userLocations[i].location;           
+                break;
+            }
+        } 
+
+        if(socketLocation!=""){
+            for(var i=0; i< stats.length; i++){                
+                if(stats[i].location == socketLocation){                     
+                    stats[i].counter = stats[i].counter-1;           
+                    break;
+                }
+            } 
+        }       
+        
+        delete SOCKET_LIST[socket.id];    
+        console.log('Bye socket: ' + socket.id  + '. Currently: ' + Object.keys(SOCKET_LIST).length + ' active'); 
+        socket.emit('newStats',stats);                   
+    });
+   
+    socket.on('sendData',({user,loc})=>{   
+        var existingUser = false;
+        for(var i=0; i<userLocations.length; i++){
+            if(userLocations[i].userSocket == user){
+                existingUser = true;
+                break;
+            }
+        }
+        if(!existingUser){
+            userLocations.push({'userSocket': user, 'location': loc});
+        }       
+
         let found = false;
         if(stats.length>0){
             for(var i=0; i< stats.length; i++){                
