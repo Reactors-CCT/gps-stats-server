@@ -10,14 +10,20 @@ app.get('/', function(req, res) {
 
 app.use('public',express.static(__dirname + '/public'));
 
-var SOCKET_LIST = [];
+var SOCKET_LIST = {};
 var stats = [];
 
 io.on('connection',socket => {
 
-    SOCKET_LIST.push(socket);
-    console.log('New access to site. Currently: ' + SOCKET_LIST.length + " active")
+   // socket.emit('newUser')
+    SOCKET_LIST[socket.id] = socket;
+    console.log('New socket: ' + socket.id  + '. Currently: ' + Object.keys(SOCKET_LIST).length + ' active');
     socket.emit('newStats',stats);
+
+    socket.on('disconnect', function(){    
+        delete SOCKET_LIST[socket.id];    
+        console.log('Bye socket: ' + socket.id  + '. Currently: ' + Object.keys(SOCKET_LIST).length + ' active');                    
+    });
 
     socket.on('sendData',({loc})=>{   
         let found = false;
@@ -42,10 +48,11 @@ io.on('connection',socket => {
 });
 
 setInterval(()=>{
-    for(var i=0; i<SOCKET_LIST.length; i++){
-        SOCKET_LIST[i].emit('newUser',stats);
-    }
-});
+    for(var i in SOCKET_LIST){
+        var socket = SOCKET_LIST[i];
+        socket.emit('newStats',stats);
+    }    
+},10000);
 
 const ip = '0.0.0.0' || '127.0.0.1';
 const port = process.env.PORT || 3000;
