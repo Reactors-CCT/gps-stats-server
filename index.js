@@ -15,7 +15,6 @@ var stats = [];
 var userLocations = [];
 
 io.on('connection',socket => {
-
     SOCKET_LIST[socket.id] = socket;
     console.log('New socket: ' + socket.id  + '. Currently: ' + Object.keys(SOCKET_LIST).length + ' active');
     socket.emit('newUser',socket.id);
@@ -56,38 +55,37 @@ io.on('connection',socket => {
         }
         if(!existingUser){
             userLocations.push({'userSocket': user, 'location': loc});
-        }       
+        }   
 
         let found = false;
-        if(stats.length>0){
-            for(var i=0; i< stats.length; i++){                
-                if(stats[i].location == loc){
-                    stats[i].counter = stats[i].counter+1;
-                    found = true;
-                    break;
-                } else { 
-                    found = false;
+        if(!existingUser){
+            if(stats.length>0){
+                for(var i=0; i< stats.length; i++){                
+                    if(stats[i].location == loc){
+                        stats[i].counter = stats[i].counter+1;
+                        found = true;
+                        break;
+                    } else { 
+                        found = false;
+                    }
                 }
-            }
-            if(!found){
+                if(!found){
+                    stats.push({location: loc, counter: 1});
+                }
+            } else {
                 stats.push({location: loc, counter: 1});
             }
-        } else {
-            stats.push({location: loc, counter: 1});
+            socket.emit('newStats',stats);
         }
-        socket.emit('newStats',stats);
+    });
+
+    socket.on('refresh',()=>{
+        socket.emit('newStats', stats); 
     });
 });
 
-setInterval(()=>{
-    for(var i in SOCKET_LIST){
-        var socket = SOCKET_LIST[i];
-        socket.emit('newStats',stats);
-    }    
-},10000);
-
 const ip = '0.0.0.0' || '127.0.0.1';
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000; 
 
 serv.listen(port, ip, function(){
     console.log("Server Started on ip: " + ip + " and port " + port);
